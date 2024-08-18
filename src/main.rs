@@ -1,11 +1,9 @@
-use candid::{CandidType, Decode, Encode, Nat};
+use candid::{Decode, Encode, Nat};
 use ic_agent::{
 	agent::http_transport::ReqwestTransport, export::Principal, identity::Secp256k1Identity, Agent,
 };
-use icrc_ledger_types::icrc1::account::Account;
-use icrc_ledger_types::icrc1::transfer::BlockIndex;
-use icrc_ledger_types::icrc3::transactions::Transaction;
 use std::error::Error;
+use icrc_ledger_types::icrc3::transactions::{GetTransactionsRequest, GetTransactionsResponse};
 
 #[tokio::main]
 pub async fn main() -> Result<(), Box<dyn Error>> {
@@ -16,8 +14,7 @@ pub async fn main() -> Result<(), Box<dyn Error>> {
 		MHQCAQEEILLbYT5cEw65puvzNeCYvQUVej7Yp+0NyiIpAzhon+9moAcGBSuBBAAK
 		oUQDQgAEz5laAZIQI7+44mYzRllX/b6ZzBXedT0VWYNd0cTxZXxLaB6lLXXeylfP
 		HCrZI0tCmZfZZH9rsASN40otbb+/Kw==
-		-----END EC PRIVATE KEY-----"
-			.as_bytes(),
+		-----END EC PRIVATE KEY-----".as_bytes(),
 	)?;
 
 	let agent = Agent::builder()
@@ -26,60 +23,30 @@ pub async fn main() -> Result<(), Box<dyn Error>> {
 		.build()
 		.map_err(|e| format!("{:?}", e))?;
 
-	let canister_id = Principal::from_text("n5wcd-faaaa-aaaar-qaaea-cai".to_string())?;
-	let owner = Principal::from_text(
-		"hijd3-ferev-ybojm-nailk-pdk3t-l2h3o-h6cdy-mfynr-p3oen-d67mg-5ae".to_string(),
-	)?;
+	let canister_id = Principal::from_text("mxzaz-hqaaa-aaaar-qaada-cai".to_string())?;
 
-	let reqst = GetAccountTransactionsArgs {
-		account: Account {
-			owner,
-			subaccount: None,
-		},
-		start: None,
-		max_results: Nat::from(50u64),
-	};
+	let reqst = GetTransactionsRequest{start: Nat::from(1_732_000u64), length: Nat::from(2u64)};
 	let arg = Encode!(&reqst)?;
 
 	let ret = agent
-		.update(&canister_id, "get_account_transactions")
-		.with_arg(arg)
-		.call_and_wait()
-		.await?;
+	.update(&canister_id, "get_transactions")
+	.with_arg(arg)
+	.call_and_wait()
+	.await?;
 
-	let answer = Decode!(&ret, GetTransactionsResult)?;
-	println!("{:?}", answer);
+	let answer = Decode!(&ret, GetTransactionsResponse)?;
+	// hijd3-ferev-ybojm-nailk-pdk3t-l2h3o-h6cdy-mfynr-p3oen-d67mg-5ae
+	let proxy_account = Principal::from_text("lrf2i-zba54-pygwt-tbi75-zvlz4-7gfhh-ylcrq-2zh73-6brgn-45jy5-cae".to_string())?;
+
+	// use for loop if there are multiple accounts
+	for tx in answer.transactions {
+		if let Some(t) = tx.transfer {
+			if t.to.owner == proxy_account{
+				// TO CALL
+				println!("{:?}", t.to.owner);
+			}
+		}
+	}
 
 	Ok(())
-}
-
-#[derive(CandidType, Debug, candid::Deserialize, PartialEq, Eq)]
-pub struct GetAccountTransactionsArgs {
-	pub account: Account,
-	// The txid of the last transaction seen by the client.
-	// If None then the results will start from the most recent
-	// txid.
-	pub start: Option<BlockIndex>,
-	// Maximum number of transactions to fetch.
-	pub max_results: Nat,
-}
-
-pub type GetTransactionsResult = Result<GetTransactions, GetTransactionsErr>;
-
-#[derive(CandidType, Debug, candid::Deserialize, PartialEq, Eq)]
-pub struct GetTransactions {
-	pub transactions: Vec<TransactionWithId>,
-	// The txid of the oldest transaction the account has
-	pub oldest_tx_id: Option<BlockIndex>,
-}
-
-#[derive(CandidType, Debug, candid::Deserialize, PartialEq, Eq)]
-pub struct TransactionWithId {
-	pub id: BlockIndex,
-	pub transaction: Transaction,
-}
-
-#[derive(CandidType, Debug, candid::Deserialize, PartialEq, Eq)]
-pub struct GetTransactionsErr {
-	pub message: String,
 }
