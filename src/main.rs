@@ -25,7 +25,7 @@ pub async fn main() -> Result<(), Box<dyn Error>> {
 
 	let canister_id = Principal::from_text("mxzaz-hqaaa-aaaar-qaada-cai".to_string())?;
 
-	let reqst = GetTransactionsRequest{start: Nat::from(1_732_000u64), length: Nat::from(2u64)};
+	let reqst = GetTransactionsRequest{start: Nat::from(1_733_000u64), length: Nat::from(4u64)};
 	let arg = Encode!(&reqst)?;
 
 	let ret = agent
@@ -35,15 +35,16 @@ pub async fn main() -> Result<(), Box<dyn Error>> {
 	.await?;
 
 	let answer = Decode!(&ret, GetTransactionsResponse)?;
-	// hijd3-ferev-ybojm-nailk-pdk3t-l2h3o-h6cdy-mfynr-p3oen-d67mg-5ae
-	let proxy_account = Principal::from_text("lrf2i-zba54-pygwt-tbi75-zvlz4-7gfhh-ylcrq-2zh73-6brgn-45jy5-cae".to_string())?;
 
-	// use for loop if there are multiple accounts
-	for tx in answer.transactions {
-		if let Some(t) = tx.transfer {
-			if t.to.owner == proxy_account{
-				// TO CALL
-				println!("{:?}", t.to.owner);
+	let proxy_account = vec![Principal::from_text("lrf2i-zba54-pygwt-tbi75-zvlz4-7gfhh-ylcrq-2zh73-6brgn-45jy5-cae".to_string())?, Principal::from_text("q2u76-ayx43-jvcbk-klmdu-6akxa-olhvs-mkjqf-td2ok-xi7tl-megex-kqe".to_string())?];
+
+	for acc in proxy_account {
+		for tx in answer.clone().transactions {
+			if let Some(t) = tx.transfer {
+				if t.to.owner == acc{
+					// TO CALL
+					println!("{:?}", t.to.owner);
+				}
 			}
 		}
 	}
