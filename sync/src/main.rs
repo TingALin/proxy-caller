@@ -1,54 +1,35 @@
 use candid::{Decode, Encode, Nat};
 use ic_agent::{
-	agent::http_transport::ReqwestTransport, export::Principal, identity::Secp256k1Identity, Agent,
+	agent::{self, http_transport::ReqwestTransport}, export::Principal, identity::Secp256k1Identity, Agent,
 };
 use icrc_ledger_types::icrc3::transactions::{GetTransactionsRequest, GetTransactionsResponse};
 use anyhow::anyhow;
 use dotenvy::dotenv;
-use utils::Database;
+use utils::{Database, with_canister};
 mod utils;
+use sea_orm::DbConn;
+use std::error::Error;
+use log::info;
+mod dao;
 
+pub async fn sync_tx(db: &DbConn) -> Result<(), Box<dyn Error>> {
+	with_canister("CKBTC_CANISTER_ID", |agent, canister_id| async move {
+		info!("{:?} syncing transactions ... ", chrono::Utc::now());
 
-#[tokio::main]
-pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
-	dotenv().ok();
+		let start_index = match{
+		// start_index: read from the db
+	// if none, read from the current.
 
-	let db_url = std::env::var("DATABASE_URL").map_err(|_| anyhow!("DATABASE_URL is not found"))?;
-	let db = Database::new(db_url.clone()).await;
-
-
-	let network = "https://ic0.app".to_string();
-
-	let agent_identity = Secp256k1Identity::from_pem(
-		"-----BEGIN EC PRIVATE KEY-----
-		MHQCAQEEILLbYT5cEw65puvzNeCYvQUVej7Yp+0NyiIpAzhon+9moAcGBSuBBAAK
-		oUQDQgAEz5laAZIQI7+44mYzRllX/b6ZzBXedT0VWYNd0cTxZXxLaB6lLXXeylfP
-		HCrZI0tCmZfZZH9rsASN40otbb+/Kw==
-		-----END EC PRIVATE KEY-----".as_bytes(),
-	)?;
-
-	let agent = Agent::builder()
-		.with_transport(ReqwestTransport::create(network).unwrap())
-		.with_identity(agent_identity)
-		.build()
-		.map_err(|e| format!("{:?}", e))?;
-
-	let canister_id = Principal::from_text("mxzaz-hqaaa-aaaar-qaada-cai".to_string())?;
-
-	// let start_index = match{
-	// 	// start_index: read from the db
-	// // if none, read from the current.
-
-	// // let init_reqst = GetTransactionsRequest{start: Nat::from(0u64), length: Nat::from(0u64)};
-	// // let init_arg = Encode!(&init_reqst)?;
-	// // let init_ret = agent
-	// // .update(&canister_id, "get_transactions")
-	// // .with_arg(init_arg)
-	// // .call_and_wait()
-	// // .await?;
-	// // let init_answer = Decode!(&init_ret, GetTransactionsResponse)?;
-	// // let start_index  = init_answer.first_index;
-	// };
+	// let init_reqst = GetTransactionsRequest{start: Nat::from(0u64), length: Nat::from(0u64)};
+	// let init_arg = Encode!(&init_reqst)?;
+	// let init_ret = agent
+	// .update(&canister_id, "get_transactions")
+	// .with_arg(init_arg)
+	// .call_and_wait()
+	// .await?;
+	// let init_answer = Decode!(&init_ret, GetTransactionsResponse)?;
+	// let start_index  = init_answer.first_index;
+	};
 
 	let reqst = GetTransactionsRequest{start: start_index, length: Nat::from(2u64)};
 	let arg = Encode!(&reqst)?;
@@ -74,6 +55,17 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
 			}
 		}
 	}
+	Ok(())
+	}).await
+}
 
+#[tokio::main]
+pub async fn main() -> Result<(), Box<dyn Error>> {
+	dotenv().ok();
+
+	let db_url = std::env::var("DATABASE_URL").map_err(|_| anyhow!("DATABASE_URL is not found"))?;
+	let db = Database::new(db_url.clone()).await;
+
+	let _ = sync_tx(&db.connection).await;
 	Ok(())
 }

@@ -74,7 +74,7 @@ where
 	Ok(())
 }
 
-pub async fn with_omnity_canister<F, R>(canister: &str, f: F) -> Result<(), Box<dyn Error>>
+pub async fn with_canister<F, R>(canister: &str, f: F) -> Result<(), Box<dyn Error>>
 where
 	R: Future<Output = Result<(), Box<dyn Error>>>,
 	F: FnOnce(Agent, Principal) -> R,
