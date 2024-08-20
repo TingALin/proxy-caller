@@ -7,7 +7,6 @@ use ic_agent::{
 use anyhow::anyhow;
 use std::{sync::Arc, error::Error, future::Future};
 
-
 pub struct Database {
 	pub connection: Arc<DatabaseConnection>,
 }

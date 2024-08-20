@@ -5,18 +5,17 @@ use ic_agent::{
 use icrc_ledger_types::icrc3::transactions::{GetTransactionsRequest, GetTransactionsResponse};
 use anyhow::anyhow;
 use dotenvy::dotenv;
-use utils::{Database, with_canister};
-mod utils;
 use sea_orm::DbConn;
 use std::error::Error;
 use log::info;
-mod dao;
+use proxy_caller::utils::{Database, with_canister};
+use crate::entity::caller::Entity as Caller;
 
 pub async fn sync_tx(db: &DbConn) -> Result<(), Box<dyn Error>> {
 	with_canister("CKBTC_CANISTER_ID", |agent, canister_id| async move {
 		info!("{:?} syncing transactions ... ", chrono::Utc::now());
 
-		let start_index = match{
+		let start_index = match Caller::find_by_id(ticket_id).one(db).await {
 		// start_index: read from the db
 	// if none, read from the current.
 
