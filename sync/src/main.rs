@@ -46,7 +46,6 @@ pub async fn sync_tx(db: &DbConn) -> Result<(), Box<dyn Error>> {
 			.call_and_wait()
 			.await?;
 
-		// let tx_response = Decode!(&ret, GetTransactionsResponse)?;
 		if let Ok(tx_response) = Decode!(&ret, GetTransactionsResponse) {
 			let block_index = tx_response.first_index.to_string().parse::<i16>()?;
 			let caller = caller::Model::new(block_index);
@@ -54,10 +53,8 @@ pub async fn sync_tx(db: &DbConn) -> Result<(), Box<dyn Error>> {
 			let _ = Mutation::save_block_index(db, caller);
 
 			let proxy_account = vec![
-				Principal::from_text(
-					"il25e-7ncru-p5jb5-zu6tn-wjetc-nmh5d-4aplx-qre2t-ww6gy-ahtzz-yae".to_string(),
-				)?,
-				Principal::from_text("ix5qj-xyaaa-aaaar-qahfa-cai".to_string())?,
+				Principal::from_text("xmiu5-jqaaa-aaaag-qbz7q-cai".to_string())?,
+				// Principal::from_text("xmiu5-jqaaa-aaaag-qbz7q-cai".to_string())?,
 			];
 
 			for acc in proxy_account {
