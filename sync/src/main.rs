@@ -40,7 +40,7 @@ pub async fn sync_tx(db: &DbConn) -> Result<(), Box<dyn Error>> {
 
 		let reqst = GetTransactionsRequest {
 			start: start_index,
-			length: Nat::from(2u8),
+			length: Nat::from(50u8),
 		};
 		let arg = Encode!(&reqst)?;
 
