@@ -1,19 +1,21 @@
+use crate::entity::caller;
+use anyhow::anyhow;
+use ic_agent::{
+	agent::http_transport::ReqwestTransport, export::Principal, identity::Secp256k1Identity, Agent,
+	Identity,
+};
+use log::info;
 use sea_orm::{ConnectOptions, DatabaseConnection};
 use std::time::Duration;
-use log::info;
-use ic_agent::{
-	agent::http_transport::ReqwestTransport, export::Principal, identity::Secp256k1Identity, Agent, Identity
-};
-use anyhow::anyhow;
-use std::{sync::Arc, error::Error, future::Future};
+use std::{error::Error, future::Future, sync::Arc};
 
 pub struct Database {
 	pub connection: Arc<DatabaseConnection>,
 }
 
 impl Database {
-    pub async fn new(db_url: String) -> Self {
-        let mut opt = ConnectOptions::new(db_url);
+	pub async fn new(db_url: String) -> Self {
+		let mut opt = ConnectOptions::new(db_url);
 		opt.max_connections(100)
 			.min_connections(5)
 			.connect_timeout(Duration::from_secs(8))
@@ -23,7 +25,7 @@ impl Database {
 			.sqlx_logging(false)
 			.sqlx_logging_level(log::LevelFilter::Info);
 
-        let connection = sea_orm::Database::connect(opt)
+		let connection = sea_orm::Database::connect(opt)
 			.await
 			.expect("Could not connect to database");
 		assert!(connection.ping().await.is_ok());
@@ -32,7 +34,7 @@ impl Database {
 		Database {
 			connection: Arc::new(connection),
 		}
-    }
+	}
 }
 
 pub async fn create_agent(identity: impl Identity + 'static) -> Result<Agent, String> {
@@ -83,4 +85,13 @@ where
 		f(agent, canister_id).await
 	})
 	.await
+}
+
+impl caller::Model {
+	pub fn new(block_index: i16) -> Self {
+		Self {
+			seq: 0_i16,
+			block_id: Some(block_index),
+		}
+	}
 }

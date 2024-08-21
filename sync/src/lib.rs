@@ -1,7 +1,7 @@
+pub mod dao;
 pub mod entity;
 pub mod utils;
-pub mod dao;
 
+pub use dao::*;
 pub use entity::*;
 pub use utils::*;
-pub use dao::*;
