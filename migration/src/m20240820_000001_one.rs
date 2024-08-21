@@ -12,7 +12,7 @@ impl MigrationTrait for Migration {
 					.table(Caller::Table)
 					.if_not_exists()
 					.col(ColumnDef::new(Caller::Seq).small_integer().primary_key())
-					.col(ColumnDef::new(Caller::BlockId).tiny_unsigned())
+					.col(ColumnDef::new(Caller::BlockId).string())
 					.to_owned(),
 			)
 			.await

@@ -88,7 +88,7 @@ where
 }
 
 impl caller::Model {
-	pub fn new(block_index: i16) -> Self {
+	pub fn new(block_index: String) -> Self {
 		Self {
 			seq: 0_i16,
 			block_id: Some(block_index),

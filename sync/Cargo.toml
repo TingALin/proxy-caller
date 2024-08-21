@@ -26,3 +26,4 @@ sea-orm = { version = "1.0.0", features = [
 ] }
 log = "0.4.22"
 chrono = "0.4"
+log4rs = "1.0"
