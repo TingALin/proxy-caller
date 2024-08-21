@@ -70,7 +70,8 @@ pub async fn sync_tx(db: &DbConn) -> Result<(), Box<dyn Error>> {
 			let block_index = tx_response.first_index.to_string();
 			let caller = caller::Model::new(block_index.clone());
 
-			let _ = Mutation::save_block_index(db, caller);
+			let updated_block_index = Mutation::save_block_index(db, caller).await?;
+			info!("Updated block index: {:?}", updated_block_index.block_id);
 		}
 		Ok(())
 	})
