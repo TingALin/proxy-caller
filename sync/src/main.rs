@@ -38,6 +38,8 @@ pub async fn sync_tx(db: &DbConn) -> Result<(), Box<dyn Error>> {
 			}
 		};
 
+		println!("{:?}", start_index.clone());
+
 		let reqst = GetTransactionsRequest {
 			start: start_index,
 			length: Nat::from(50u8),
@@ -52,8 +54,8 @@ pub async fn sync_tx(db: &DbConn) -> Result<(), Box<dyn Error>> {
 
 		if let Ok(tx_response) = Decode!(&ret, GetTransactionsResponse) {
 			let proxy_account = vec![
-				Principal::from_text("xmiu5-jqaaa-aaaag-qbz7q-cai".to_string())?,
-				// Principal::from_text("xmiu5-jqaaa-aaaag-qbz7q-cai".to_string())?,
+				// Principal::from_text("lrf2i-zba54-pygwt-tbi75-zvlz4-7gfhh-ylcrq-2zh73-6brgn-45jy5-cae".to_string())?,
+				Principal::from_text("akhru-myaaa-aaaag-qcvna-cai".to_string())?,
 			];
 
 			for acc in proxy_account {
@@ -67,7 +69,8 @@ pub async fn sync_tx(db: &DbConn) -> Result<(), Box<dyn Error>> {
 				}
 			}
 
-			let block_index = tx_response.first_index.to_string();
+			let block_index = tx_response.first_index.to_string().replace("_", "");
+
 			let caller = caller::Model::new(block_index.clone());
 
 			let updated_block_index = Mutation::save_block_index(db, caller).await?;

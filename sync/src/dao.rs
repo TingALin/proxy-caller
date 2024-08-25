@@ -32,7 +32,7 @@ impl Mutation {
 				info!("insert block index : {:?}", ret);
 			}
 			Err(_) => {
-				info!("the block index already exited, need to update it!");
+				info!("the block index already exited");
 
 				let res = Caller::update(active_model)
 					.filter(caller::Column::Seq.eq(caller.seq.to_owned()))
