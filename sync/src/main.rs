@@ -37,9 +37,7 @@ pub async fn sync_tx(db: &DbConn) -> Result<(), Box<dyn Error>> {
 				init_response.first_index
 			}
 		};
-
-		println!("{:?}", start_index.clone());
-
+		// println!("{:?}", start_index.clone());
 		let reqst = GetTransactionsRequest {
 			start: start_index,
 			length: Nat::from(50u8),
@@ -70,7 +68,6 @@ pub async fn sync_tx(db: &DbConn) -> Result<(), Box<dyn Error>> {
 			}
 
 			let block_index = tx_response.first_index.to_string().replace("_", "");
-
 			let caller = caller::Model::new(block_index.clone());
 
 			let updated_block_index = Mutation::save_block_index(db, caller).await?;
