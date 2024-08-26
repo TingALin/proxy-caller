@@ -13,6 +13,7 @@ impl MigrationTrait for Migration {
 					.if_not_exists()
 					.col(ColumnDef::new(Caller::Seq).small_integer().primary_key())
 					.col(ColumnDef::new(Caller::BlockId).string())
+					.col(ColumnDef::new(Caller::Length).big_unsigned())
 					.to_owned(),
 			)
 			.await
@@ -30,4 +31,5 @@ enum Caller {
 	Table,
 	Seq,
 	BlockId,
+	Length,
 }

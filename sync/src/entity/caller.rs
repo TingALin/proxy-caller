@@ -8,6 +8,7 @@ pub struct Model {
 	#[sea_orm(primary_key, auto_increment = false)]
 	pub seq: i16,
 	pub block_id: Option<String>,
+	pub length: Option<i64>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
