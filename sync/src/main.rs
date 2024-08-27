@@ -20,8 +20,6 @@ use std::ops::Add;
 
 pub const LENGTHPERBLOCK: u16 = 1000u16;
 
-pub type BlockIndex = u64;
-
 pub async fn get_latest_first_index(
 	agent: Agent,
 	canister_id: Principal,
@@ -85,7 +83,7 @@ pub async fn sync_txs(db: &DbConn) -> Result<(), Box<dyn Error>> {
 
 		let idx = Query::get_latest_block_index(db).await?;
 		let current_index = get_latest_first_index(agent.clone(), canister_id).await?;
-		let start_index = match idx {
+		let start_index = match idx.clone() {
 			Some(idx) => {
 				if Nat::from(idx.first_index.add(1) as u64) == current_index.clone() {
 					let _ = current_index.clone();
@@ -96,6 +94,13 @@ pub async fn sync_txs(db: &DbConn) -> Result<(), Box<dyn Error>> {
 			}
 			None => current_index.clone(),
 		};
+
+		// 直接返回，什么都不用做
+		if let Some(_) = idx.clone().unwrap().length{
+			if start_index.clone() == current_index.clone() {
+				return Ok(());
+			}
+		}
 
 		let reqst = GetTransactionsRequest {
 			start: start_index.clone(),
@@ -127,24 +132,22 @@ pub async fn sync_txs(db: &DbConn) -> Result<(), Box<dyn Error>> {
 							}
 						}
 					}
-					let block_index = tx_response
-						.first_index
-						.to_string()
-						.replace("_", "")
-						.parse::<i64>()?;
-					let caller = caller::Model::new(block_index, Some(LENGTHPERBLOCK as i64));
-					let updated_block_index = Mutation::save_block_index(db, caller).await?;
-					info!("Updated block index: {:?}", updated_block_index.first_index);
 				} else if tx_response.transactions.len() == 0 {
 					let start = start_index.clone().to_string().parse::<u64>()?;
 					let end = current_index.clone().to_string().parse::<u64>()?;
 					for idx in start..end {
 						let _ = sync_tx(idx, acc).await?;
 					}
-					let caller = caller::Model::new(block_index, Some(LENGTHPERBLOCK as i64));
-					let updated_block_index = Mutation::save_block_index(db, caller).await?;
 				}
 			}
+			let block_index = tx_response
+				.first_index
+				.to_string()
+				.replace("_", "")
+				.parse::<i64>()?;
+			let caller = caller::Model::new(block_index, Some(LENGTHPERBLOCK as i64));
+			let updated_block_index = Mutation::save_block_index(db, caller).await?;
+			info!("Updated block index: {:?}", updated_block_index.first_index);
 		}
 		Ok(())
 	})
