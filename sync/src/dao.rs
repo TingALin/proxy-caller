@@ -37,13 +37,6 @@ impl Mutation {
 			}
 			Err(_) => {
 				info!("the block index already exited");
-
-				let res = Caller::update(active_model)
-					.filter(caller::Column::FirstIndex.eq(caller.first_index.to_owned()))
-					.exec(db)
-					.await
-					.map(|caller| caller);
-				info!("update block index : {:?}", res);
 			}
 		}
 		Ok(caller::Model { ..caller })

@@ -86,10 +86,9 @@ where
 }
 
 impl caller::Model {
-	pub fn new(block_index: i64, len: Option<i64>) -> Self {
+	pub fn new(block_index: i64) -> Self {
 		Self {
 			first_index: block_index,
-			length: len,
 		}
 	}
 }

@@ -75,8 +75,7 @@ pub async fn sync_tx(request_index: u64, acc: Principal) -> Result<(), Box<dyn E
 	.await
 }
 
-// 方案1不知first_index什么时候更新，实时性会很差
-// 方案2找方法：如log_length>= first_index+1000,first_index就可以改成最新
+// 不知first_index什么时候更新，实时性会很差方案2找方法：如log_length>= first_index+1000,first_index就可以改成最新
 pub async fn sync_txs(db: &DbConn) -> Result<(), Box<dyn Error>> {
 	with_canister("CKBTC_CANISTER_ID", |agent, canister_id| async move {
 		info!("{:?} syncing transactions ... ", chrono::Utc::now());
@@ -96,10 +95,8 @@ pub async fn sync_txs(db: &DbConn) -> Result<(), Box<dyn Error>> {
 		};
 
 		// 直接返回，什么都不用做
-		if let Some(_) = idx.clone().unwrap().length{
-			if start_index.clone() == current_index.clone() {
-				return Ok(());
-			}
+		if Nat::from(idx.clone().unwrap().first_index as u64) == current_index.clone() {
+			return Ok(());
 		}
 
 		let reqst = GetTransactionsRequest {
@@ -117,10 +114,11 @@ pub async fn sync_txs(db: &DbConn) -> Result<(), Box<dyn Error>> {
 		if let Ok(tx_response) = Decode!(&ret, GetTransactionsResponse) {
 			// 环境变量或全局
 			let proxy_account = vec![
-				// Principal::from_text("
-				// lrf2i-zba54-pygwt-tbi75-zvlz4-7gfhh-ylcrq-2zh73-6brgn-45jy5-cae".to_string())?,
+				Principal::from_text("akhru-myaaa-aaaag-qcvna-cai".to_string())?,
 				Principal::from_text("akhru-myaaa-aaaag-qcvna-cai".to_string())?,
 			];
+
+			let mut block_index = 0;
 
 			for acc in proxy_account {
 				if tx_response.transactions.len() as u16 == LENGTHPERBLOCK {
@@ -132,20 +130,22 @@ pub async fn sync_txs(db: &DbConn) -> Result<(), Box<dyn Error>> {
 							}
 						}
 					}
+					block_index = tx_response
+						.first_index
+						.to_string()
+						.replace("_", "")
+						.parse::<i64>()?;
 				} else if tx_response.transactions.len() == 0 {
 					let start = start_index.clone().to_string().parse::<u64>()?;
-					let end = current_index.clone().to_string().parse::<u64>()?;
+					let end = start.add(LENGTHPERBLOCK as u64);
 					for idx in start..end {
 						let _ = sync_tx(idx, acc).await?;
 					}
+					block_index = end as i64;
 				}
 			}
-			let block_index = tx_response
-				.first_index
-				.to_string()
-				.replace("_", "")
-				.parse::<i64>()?;
-			let caller = caller::Model::new(block_index, Some(LENGTHPERBLOCK as i64));
+
+			let caller = caller::Model::new(block_index);
 			let updated_block_index = Mutation::save_block_index(db, caller).await?;
 			info!("Updated block index: {:?}", updated_block_index.first_index);
 		}

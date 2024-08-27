@@ -16,7 +16,6 @@ impl MigrationTrait for Migration {
 							.big_unsigned()
 							.primary_key(),
 					)
-					.col(ColumnDef::new(Caller::Length).big_unsigned())
 					.to_owned(),
 			)
 			.await
@@ -33,5 +32,4 @@ impl MigrationTrait for Migration {
 enum Caller {
 	Table,
 	FirstIndex,
-	Length,
 }
