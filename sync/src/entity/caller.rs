@@ -6,8 +6,7 @@ use sea_orm::entity::prelude::*;
 #[sea_orm(table_name = "caller")]
 pub struct Model {
 	#[sea_orm(primary_key, auto_increment = false)]
-	pub seq: i16,
-	pub block_id: Option<String>,
+	pub first_index: i64,
 	pub length: Option<i64>,
 }
 

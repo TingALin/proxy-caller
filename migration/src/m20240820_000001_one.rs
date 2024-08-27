@@ -11,8 +11,11 @@ impl MigrationTrait for Migration {
 				Table::create()
 					.table(Caller::Table)
 					.if_not_exists()
-					.col(ColumnDef::new(Caller::Seq).small_integer().primary_key())
-					.col(ColumnDef::new(Caller::BlockId).string())
+					.col(
+						ColumnDef::new(Caller::FirstIndex)
+							.big_unsigned()
+							.primary_key(),
+					)
 					.col(ColumnDef::new(Caller::Length).big_unsigned())
 					.to_owned(),
 			)
@@ -29,7 +32,6 @@ impl MigrationTrait for Migration {
 #[derive(DeriveIden)]
 enum Caller {
 	Table,
-	Seq,
-	BlockId,
+	FirstIndex,
 	Length,
 }

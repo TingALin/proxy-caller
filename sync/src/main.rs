@@ -3,7 +3,9 @@ use candid::{Decode, Encode, Nat};
 use dotenvy::dotenv;
 use ic_agent::export::Principal;
 use ic_agent::Agent;
-use icrc_ledger_types::icrc3::transactions::{GetTransactionsRequest, GetTransactionsResponse};
+use icrc_ledger_types::icrc3::transactions::{
+	GetTransactionsRequest, GetTransactionsResponse, Transaction,
+};
 use log::{info, LevelFilter};
 use log4rs::{
 	append::console::ConsoleAppender,
@@ -17,6 +19,8 @@ use std::error::Error;
 use std::ops::Add;
 
 pub const LENGTHPERBLOCK: u16 = 1000u16;
+
+pub type BlockIndex = u64;
 
 pub async fn get_latest_first_index(
 	agent: Agent,
@@ -40,36 +44,61 @@ pub async fn get_latest_first_index(
 	Ok(init_response.first_index)
 }
 
+pub async fn sync_tx(request_index: u64, acc: Principal) -> Result<(), Box<dyn Error>> {
+	with_canister(
+		"CKBTC_ARCHIVE_CANISTER_ID",
+		|agent, canister_id| async move {
+			info!(
+				"{:?} syncing the archive transaction ... ",
+				chrono::Utc::now()
+			);
+
+			let arg = Encode!(&request_index)?;
+
+			let ret = agent
+				.update(&canister_id, "get_transaction")
+				.with_arg(arg)
+				.call_and_wait()
+				.await?;
+
+			let answer = Decode!(&ret, Option<Transaction>)?;
+			if let Some(tx) = answer {
+				if let Some(_transfer) = tx.transfer {
+					// 有需要就转换
+					if _transfer.to == acc.into() {
+						// TOCALL
+						println!("{:?}", _transfer.to);
+					}
+				}
+			}
+			Ok(())
+		},
+	)
+	.await
+}
+
 // 方案1不知first_index什么时候更新，实时性会很差
 // 方案2找方法：如log_length>= first_index+1000,first_index就可以改成最新
-pub async fn sync_tx(db: &DbConn) -> Result<(), Box<dyn Error>> {
+pub async fn sync_txs(db: &DbConn) -> Result<(), Box<dyn Error>> {
 	with_canister("CKBTC_CANISTER_ID", |agent, canister_id| async move {
 		info!("{:?} syncing transactions ... ", chrono::Utc::now());
 
-		let idx = Query::get_block_index(db).await?;
+		let idx = Query::get_latest_block_index(db).await?;
 		let current_index = get_latest_first_index(agent.clone(), canister_id).await?;
-
 		let start_index = match idx {
-			// 如果拿到即时的INDEX是现idx.block_id+1， 可用即时的INDEX, 不然就是现存的INDEX
 			Some(idx) => {
-				if idx.block_id.unwrap().parse::<u64>().unwrap().add(1) == current_index {
-					current_index;
+				if Nat::from(idx.first_index.add(1) as u64) == current_index.clone() {
+					let _ = current_index.clone();
+				} else if Nat::from(idx.first_index as u64) == current_index.clone() {
+					let _ = current_index.clone();
 				}
-				Nat::from(idx.block_id.unwrap().parse::<u64>().unwrap())
+				Nat::from(idx.first_index as u64)
 			}
-			None => current_index,
+			None => current_index.clone(),
 		};
 
-		// 如果拿到即时的INDEX是现idx.block_id，而数据库上现存LENGTH是LENGTHPERBLOCK就什么也不用做
-		// 如果有问题就改成 &&, 确保这个后什么都不会执行
-		if start_index == current_index {
-			if let Some(_) = idx.unwrap().length {
-				return Ok(());
-			}
-		}
-
 		let reqst = GetTransactionsRequest {
-			start: start_index,
+			start: start_index.clone(),
 			length: Nat::from(LENGTHPERBLOCK),
 		};
 		let arg = Encode!(&reqst)?;
@@ -88,8 +117,6 @@ pub async fn sync_tx(db: &DbConn) -> Result<(), Box<dyn Error>> {
 				Principal::from_text("akhru-myaaa-aaaag-qcvna-cai".to_string())?,
 			];
 
-			//tx_response.transactions.len() == 1000u16 就执行以下，
-			// 如果tx_response.transactions.len() < 1000u16 就什么都不要做
 			for acc in proxy_account {
 				if tx_response.transactions.len() as u16 == LENGTHPERBLOCK {
 					for tx in tx_response.clone().transactions {
@@ -100,22 +127,25 @@ pub async fn sync_tx(db: &DbConn) -> Result<(), Box<dyn Error>> {
 							}
 						}
 					}
+					let block_index = tx_response
+						.first_index
+						.to_string()
+						.replace("_", "")
+						.parse::<i64>()?;
+					let caller = caller::Model::new(block_index, Some(LENGTHPERBLOCK as i64));
+					let updated_block_index = Mutation::save_block_index(db, caller).await?;
+					info!("Updated block index: {:?}", updated_block_index.first_index);
 				} else if tx_response.transactions.len() == 0 {
-					for i in start_index..current_index {
-						// 只能在https://dashboard.internetcomputer.org/canister/nbsys-saaaa-aaaar-qaaga-cai 单个拿数据
-						//需要看返回结构，可用if let Some(t) = tx.transfer
+					let start = start_index.clone().to_string().parse::<u64>()?;
+					let end = current_index.clone().to_string().parse::<u64>()?;
+					for idx in start..end {
+						let _ = sync_tx(idx, acc).await?;
 					}
+					let caller = caller::Model::new(block_index, Some(LENGTHPERBLOCK as i64));
+					let updated_block_index = Mutation::save_block_index(db, caller).await?;
 				}
 			}
-			//不管怎样，first_index一定是会最新，所以不用改
-			let block_index = tx_response.first_index.to_string().replace("_", "");
-			// 可能要换成每个BLOCK都有一行
-			let caller = caller::Model::new(block_index.clone(), Some(LENGTHPERBLOCK as i64));
-
-			let updated_block_index = Mutation::save_block_index(db, caller).await?;
-			info!("Updated block index: {:?}", updated_block_index.block_id);
 		}
-
 		Ok(())
 	})
 	.await
@@ -136,7 +166,7 @@ pub async fn main() -> Result<(), Box<dyn Error>> {
 
 	let db = Database::new(db_url.clone()).await;
 
-	let _ = sync_tx(&db.connection).await;
+	let _ = sync_txs(&db.connection).await;
 
 	Ok(())
 }

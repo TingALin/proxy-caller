@@ -7,8 +7,12 @@ use sea_orm::*;
 pub struct Query;
 
 impl Query {
-	pub async fn get_block_index(db: &DbConn) -> Result<Option<caller::Model>, DbErr> {
-		Caller::find_by_id(0_i16).one(db).await
+	pub async fn get_latest_block_index(db: &DbConn) -> Result<Option<caller::Model>, DbErr> {
+		Caller::find()
+			.filter(caller::Column::FirstIndex.is_not_null())
+			.order_by_desc(caller::Column::FirstIndex)
+			.one(db)
+			.await
 	}
 }
 
@@ -20,7 +24,7 @@ impl Mutation {
 		caller: caller::Model,
 	) -> Result<caller::Model, DbErr> {
 		let active_model: caller::ActiveModel = caller.clone().into();
-		let on_conflict = OnConflict::column(caller::Column::Seq)
+		let on_conflict = OnConflict::column(caller::Column::FirstIndex)
 			.do_nothing()
 			.to_owned();
 		let insert_result = Caller::insert(active_model.clone())
@@ -35,7 +39,7 @@ impl Mutation {
 				info!("the block index already exited");
 
 				let res = Caller::update(active_model)
-					.filter(caller::Column::Seq.eq(caller.seq.to_owned()))
+					.filter(caller::Column::FirstIndex.eq(caller.first_index.to_owned()))
 					.exec(db)
 					.await
 					.map(|caller| caller);

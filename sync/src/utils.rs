@@ -56,8 +56,6 @@ where
 	F: FnOnce(Agent) -> R,
 {
 	let agent = create_agent(agent_identity).await?;
-	// agent.fetch_root_key().await?;
-
 	f(agent).await
 }
 
@@ -88,10 +86,9 @@ where
 }
 
 impl caller::Model {
-	pub fn new(block_index: String, len: Option<i64>) -> Self {
+	pub fn new(block_index: i64, len: Option<i64>) -> Self {
 		Self {
-			seq: 0_i16,
-			block_id: Some(block_index),
+			first_index: block_index,
 			length: len,
 		}
 	}
