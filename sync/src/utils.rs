@@ -1,8 +1,7 @@
 use crate::entity::caller;
 use anyhow::anyhow;
 use ic_agent::{
-	agent::http_transport::ReqwestTransport, export::Principal, identity::Secp256k1Identity, Agent,
-	Identity,
+	agent::http_transport::ReqwestTransport, export::Principal, identity::Secp256k1Identity, Agent, Identity,
 };
 use log::info;
 use sea_orm::{ConnectOptions, DatabaseConnection};

@@ -11,20 +11,14 @@ impl MigrationTrait for Migration {
 				Table::create()
 					.table(Caller::Table)
 					.if_not_exists()
-					.col(
-						ColumnDef::new(Caller::FirstIndex)
-							.big_unsigned()
-							.primary_key(),
-					)
+					.col(ColumnDef::new(Caller::FirstIndex).big_unsigned().primary_key())
 					.to_owned(),
 			)
 			.await
 	}
 
 	async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-		manager
-			.drop_table(Table::drop().table(Caller::Table).to_owned())
-			.await
+		manager.drop_table(Table::drop().table(Caller::Table).to_owned()).await
 	}
 }
 

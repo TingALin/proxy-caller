@@ -19,14 +19,9 @@ impl Query {
 pub struct Mutation;
 
 impl Mutation {
-	pub async fn save_block_index(
-		db: &DbConn,
-		caller: caller::Model,
-	) -> Result<caller::Model, DbErr> {
+	pub async fn save_block_index(db: &DbConn, caller: caller::Model) -> Result<caller::Model, DbErr> {
 		let active_model: caller::ActiveModel = caller.clone().into();
-		let on_conflict = OnConflict::column(caller::Column::FirstIndex)
-			.do_nothing()
-			.to_owned();
+		let on_conflict = OnConflict::column(caller::Column::FirstIndex).do_nothing().to_owned();
 		let insert_result = Caller::insert(active_model.clone())
 			.on_conflict(on_conflict)
 			.exec(db)
