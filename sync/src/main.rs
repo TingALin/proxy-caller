@@ -76,13 +76,13 @@ pub async fn sync_txs(db: &DbConn) -> Result<(), Box<dyn Error>> {
 			.first_index
 			.add(LENGTHPERBLOCK);
 
-		if let Some(x) = idx.clone() {
+		if let Some(x) = &idx {
 			if Nat::from(x.first_index as u64) == current_index.clone() {
 				return Ok(());
 			}
 		}
 
-		let start_index = match idx.clone() {
+		let start_index = match &idx {
 			Some(idx) => {
 				if Nat::from(idx.first_index.add(LENGTHPERBLOCK as i64) as u64) == current_index.clone() {
 					current_index.clone()
@@ -118,7 +118,7 @@ pub async fn sync_txs(db: &DbConn) -> Result<(), Box<dyn Error>> {
 
 			for acc in proxy_account {
 				if tx_response.transactions.len() == 0 {
-					let start = start_index.clone().to_string().parse::<u64>()?;
+					let start = start_index.to_string().parse::<u64>()?;
 					let end = start.add(LENGTHPERBLOCK as u64);
 					for idx in start..end {
 						let _ = sync_tx(idx, acc).await?;

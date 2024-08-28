@@ -9,8 +9,8 @@ psql -U postgres
 CREATE DATABASE caller ENCODING = 'UTF8';
 
 sea-orm-cli migrate up -u postgres://postgres:omnity_go@localhost/caller
-sea-orm-cli migrate fresh -u postgres://postgres:omnity_go@localhost/caller
-sea-orm-cli generate entity -u postgres://postgres:omnity_go@localhost:5432/caller -o src/entities
+# sea-orm-cli migrate fresh -u postgres://postgres:omnity_go@localhost/caller
+# sea-orm-cli generate entity -u postgres://postgres:omnity_go@localhost:5432/caller -o src/entities
 ```
 
 ### Build and run
@@ -18,7 +18,6 @@ sea-orm-cli generate entity -u postgres://postgres:omnity_go@localhost:5432/call
 ```bash
 cargo build --locked --release -p proxy-caller
 
-# start sync
 ./target/release/proxy_caller
 ```
 
