@@ -95,6 +95,8 @@ pub async fn sync_txs(db: &DbConn) -> Result<(), Box<dyn Error>> {
 			None => current_index.clone(),
 		};
 
+		println!("start_index: {:?}", start_index);
+
 		let reqst = GetTransactionsRequest {
 			start: start_index.clone(),
 			length: Nat::from(LENGTHPERBLOCK),
@@ -108,9 +110,8 @@ pub async fn sync_txs(db: &DbConn) -> Result<(), Box<dyn Error>> {
 			.await?;
 
 		if let Ok(tx_response) = Decode!(&ret, GetTransactionsResponse) {
-			// env variables / gobal constant
 			let proxy_account = vec![
-				// Principal::from_text("akhru-myaaa-aaaag-qcvna-cai".to_string())?,
+				Principal::from_text("5u2c6-kyaaa-aaaar-qadiq-cai".to_string())?,
 				Principal::from_text("akhru-myaaa-aaaag-qcvna-cai".to_string())?,
 			];
 
@@ -118,8 +119,10 @@ pub async fn sync_txs(db: &DbConn) -> Result<(), Box<dyn Error>> {
 
 			for acc in proxy_account {
 				if tx_response.transactions.len() == 0 {
-					let start = start_index.to_string().parse::<u64>()?;
+
+					let start = start_index.to_string().replace("_", "").parse::<u64>()?;
 					let end = start.add(LENGTHPERBLOCK as u64);
+	
 					for idx in start..end {
 						let _ = sync_tx(idx, acc).await?;
 					}
