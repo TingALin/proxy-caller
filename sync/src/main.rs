@@ -55,7 +55,6 @@ pub async fn sync_tx(request_index: u64, acc: Principal) -> Result<(), Box<dyn E
 		let answer = Decode!(&ret, Option<Transaction>)?;
 		if let Some(tx) = answer {
 			if let Some(_transfer) = tx.transfer {
-				// 有需要就转换
 				if _transfer.to == acc.into() {
 					// TOCALL
 					println!("{:?}", _transfer.to);
@@ -72,11 +71,16 @@ pub async fn sync_txs(db: &DbConn) -> Result<(), Box<dyn Error>> {
 		info!("{:?} syncing transactions ... ", chrono::Utc::now());
 
 		let idx = Query::get_latest_block_index(db).await?;
-		//add如有问题就NAT::from
 		let current_index = get_latest_first_index(agent.clone(), canister_id)
 			.await?
 			.first_index
 			.add(LENGTHPERBLOCK);
+
+		if let Some(x) = idx.clone() {
+			if Nat::from(x.first_index as u64) == current_index.clone() {
+				return Ok(());
+			}
+		}
 
 		let start_index = match idx.clone() {
 			Some(idx) => {
@@ -91,11 +95,6 @@ pub async fn sync_txs(db: &DbConn) -> Result<(), Box<dyn Error>> {
 			None => current_index.clone(),
 		};
 
-		// 直接返回，什么都不用做
-		if Nat::from(idx.clone().unwrap().first_index as u64) == current_index.clone() {
-			return Ok(());
-		}
-		// 验证是否不到1000也会返回所有
 		let reqst = GetTransactionsRequest {
 			start: start_index.clone(),
 			length: Nat::from(LENGTHPERBLOCK),
@@ -109,9 +108,9 @@ pub async fn sync_txs(db: &DbConn) -> Result<(), Box<dyn Error>> {
 			.await?;
 
 		if let Ok(tx_response) = Decode!(&ret, GetTransactionsResponse) {
-			// 环境变量或全局
+			// env variables / gobal constant
 			let proxy_account = vec![
-				Principal::from_text("akhru-myaaa-aaaag-qcvna-cai".to_string())?,
+				// Principal::from_text("akhru-myaaa-aaaag-qcvna-cai".to_string())?,
 				Principal::from_text("akhru-myaaa-aaaag-qcvna-cai".to_string())?,
 			];
 
